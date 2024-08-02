@@ -140,10 +140,18 @@
             const metadata = ruleData.metadata;
             for (const key in metadata) {
                 if (metadata[key].active) {
-                    const alertValue = getNestedValue(alertData, key);
+                    let alertValue = key === "issuerName" ? alertData.signature?.issuerName : alertData[key];
                     const ruleValue = metadata[key].value;
                     const operator = metadata[key].operator;
                     const dataType = metadata[key].dataType;
+    
+                    if (alertValue === undefined || alertValue === null) {
+                        results.mismatches.push({
+                            field: key,
+                            reason: `${ruleData.name} failed to match due to null ${fieldMappings[key] || key}. Investigate with elevated!`
+                        });
+                        continue;
+                    }
     
                     if (compareValues(alertValue, ruleValue, operator, dataType)) {
                         results.matches.push({
@@ -155,9 +163,6 @@
                         let reason = alertData.hasOwnProperty(key) ?
                             `expected ${ruleValue} but found ${alertValue}` :
                             `expected ${ruleValue} but field not present in alert data`;
-                        if (alertValue === null) {
-                            reason = `expected ${ruleValue} but found null`;
-                        }
                         results.mismatches.push({
                             field: key,
                             reason: reason
@@ -168,19 +173,14 @@
             return results;
         }
     
-        function getNestedValue(obj, path) {
-            return path.split('.').reduce((value, key) => value && value[key], obj);
-        }
-    
         function compareValues(alertValue, ruleValue, operator, dataType) {
             if (dataType === 'number') {
                 alertValue = parseFloat(alertValue);
                 ruleValue = parseFloat(ruleValue);
             }
     
-            if (ruleValue.includes('*')) {
-                const regex = new RegExp('^' + ruleValue.replace(/\*/g, '.*') + '$');
-                return regex.test(alertValue);
+            if (operator === '*' && ruleValue.endsWith('*')) {
+                return alertValue.startsWith(ruleValue.slice(0, -1));
             }
     
             switch (operator) {
@@ -231,6 +231,6 @@
                 resultsDiv.textContent = 'No significant results to display.';
             }
         }
-    </script>    
+    </script>      
 </body>
 </html>
