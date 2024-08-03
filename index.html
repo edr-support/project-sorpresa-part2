@@ -140,7 +140,7 @@
             const metadata = ruleData.metadata;
             for (const key in metadata) {
                 if (metadata[key].active) {
-                    let alertValue = key === "issuerName" ? alertData.signature?.issuerName : alertData[key];
+                    const alertValue = getAlertValue(alertData, key);
                     const ruleValue = metadata[key].value;
                     const operator = metadata[key].operator;
                     const dataType = metadata[key].dataType;
@@ -173,14 +173,22 @@
             return results;
         }
     
+        function getAlertValue(alertData, key) {
+            if (key === 'issuerName') {
+                return alertData.signature?.issuerName;
+            }
+            return alertData[key];
+        }
+    
         function compareValues(alertValue, ruleValue, operator, dataType) {
             if (dataType === 'number') {
                 alertValue = parseFloat(alertValue);
                 ruleValue = parseFloat(ruleValue);
             }
     
-            if (operator === '*' && ruleValue.endsWith('*')) {
-                return alertValue.startsWith(ruleValue.slice(0, -1));
+            if (ruleValue.includes('*')) {
+                const regex = new RegExp('^' + ruleValue.replace(/\*/g, '.*') + '$');
+                return regex.test(alertValue);
             }
     
             switch (operator) {
@@ -231,6 +239,6 @@
                 resultsDiv.textContent = 'No significant results to display.';
             }
         }
-    </script>      
+    </script>       
 </body>
 </html>
