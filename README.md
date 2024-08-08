@@ -1,5 +1,6 @@
 # Project Sorpresa
 update 8/6/24 - added additional support for Wildcards!
+
 Update 6/3/24 - Added support for the new alert suppression fields part of EDR release (its not in the release notes so thats all you'll get) 
 
 Suprise! You can use this tool to validate whether a particular EDR Alert URL (Using the alert data) should have matched or failed a specific Suppression Rule.
