@@ -143,15 +143,69 @@
                     document.getElementById('locationCheck').textContent = 'Could not determine location. Please try again later.';
                 });
         }
+
         function githubLogin() {
             // Client-side GitHub OAuth authentication
-            const clientId = 'Ov23liwJkxuk5zFU8lTi'; //  GitHub OAuth App Client ID
-            const redirectUri = 'https://edr-support.github.io/projectsorpresa'; // redirect URI
+            const clientId = 'Ov23liwJkxuk5zFU8lTi'; // GitHub OAuth App Client ID
+            const redirectUri = 'https://edr-support.github.io/projectsorpresa'; // Redirect URI
 
             const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user`;
             window.location.href = githubAuthUrl;
+        }
+
+        function handleOAuthResponse() {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            if (code) {
+                // Exchange code for access token
+                fetch('https://github.com/login/oauth/access_token', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        client_id: 'Ov23liwJkxuk5zFU8lTi',
+                        client_secret: 'YOUR_CLIENT_SECRET', // Replace with your GitHub OAuth App Client Secret
+                        code: code,
+                        redirect_uri: 'https://edr-support.github.io/projectsorpresa'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const token = data.access_token;
+                    if (token) {
+                        // Fetch user info and check allowed users
+                        fetch('https://api.github.com/user', {
+                            headers: {
+                                'Authorization': `token ${token}`
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(user => {
+                            if (isUserAllowed(user)) {
+                                document.getElementById('auth').style.display = 'none';
+                                document.getElementById('mainContent').style.display = 'block';
+                            } else {
+                                alert('Access denied: Unauthorized user');
+                            }
+                        })
+                        .catch(error => console.error('Error fetching user info:', error));
+                    } else {
+                        alert('Authentication failed');
+                    }
+                })
+                .catch(error => console.error('Error exchanging code for token:', error));
             }
-            document.getElementById('loginButton').addEventListener('click', function() {
+        }
+
+        function isUserAllowed(user) {
+            // Example: Only allow users with a specific GitHub username
+            const allowedUsers = ['allowedUser1', 'allowedUser2'];
+            return allowedUsers.includes(user.login);
+        }
+
+        document.getElementById('loginButton').addEventListener('click', function() {
             const inputPassword = document.getElementById('password').value;
             if (inputPassword === correctPassword) {
                 document.getElementById('auth').style.display = 'none';
@@ -163,6 +217,9 @@
 
         // Check location when the page loads
         checkLocation();
+
+        // Handle OAuth response on page load
+        handleOAuthResponse();
 
         // Initialize Ace editor for Alert Data
         var alertEditor = ace.edit("alertEditor");
@@ -282,7 +339,6 @@
 
         function displayMatches(results) {
             const resultsDiv = document.getElementById('results');
-            resultsDiv
             resultsDiv.innerHTML = '';
 
             if (results.mismatches.length > 0) {
