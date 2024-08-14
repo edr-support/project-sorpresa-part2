@@ -4,21 +4,13 @@
     <meta charset="UTF-8">
     <title>Sorpresa!</title>
     <link rel="icon" href="NyanCat.ico" type="image/x-icon">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js" type="text/javascript" charset="utf-8"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f4f4f4;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .container {
-            text-align: center;
-            width: 100%;
         }
 
         h1 {
@@ -26,39 +18,9 @@
             color: #fff;
             padding: 20px;
             margin: 0;
-            font-size: 24px;
-        }
-
-        #auth {
-            margin-top: 20px;
-            padding: 20px;
-        }
-
-        #password {
-            font-size: 18px;
-            padding: 10px;
-            width: 250px;
-            margin-bottom: 10px;
-        }
-
-        #loginButton {
-            background-color: #2e06df;
-            color: #fff;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 18px;
-        }
-
-        #loginMessage {
-            margin-top: 10px;
-            color: #d00;
-            font-size: 16px;
         }
 
         main {
-            display: none;
             padding: 20px;
             margin: 20px auto;
             background-color: #fff;
@@ -111,22 +73,42 @@
             background-color: #fff0f0; /* light red background for mismatches */
             color: #d00; /* darker red text for emphasis */
         }
+
+        /* Centering the auth box */
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #password {
+            font-size: 18px;
+            padding: 10px;
+            width: 250px;
+            margin-bottom: 10px;
+        }
+
+        #loginMessage {
+            margin-top: 10px;
+            color: #d00;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Sorpresa!</h1>
-        
-        <!-- Location and Password Protection -->
-        <div id="locationCheck">Checking your location...</div>
-        <div id="auth" style="display: none;">
-            <input type="password" id="password" placeholder="Enter Password">
-            <button id="loginButton">Enter</button>
-            <p id="loginMessage"></p>
-        </div>
+    <h1>Sorpresa!</h1>
+    
+    <!-- Location and Password Protection -->
+    <div id="locationCheck">Checking your location...</div>
+    <div id="auth" class="auth-container" style="display: none;">
+        <input type="password" id="password" placeholder="Enter Password">
+        <button id="loginButton">Enter</button>
+        <p id="loginMessage"></p>
     </div>
 
-    <main id="mainContent">
+    <main id="mainContent" style="display: none;">
         <label for="alertEditor">Alert Data:</label>
         <div id="alertEditor" class="editor"></div>
 
@@ -136,7 +118,7 @@
         <button onclick="processData()">Validate</button>
         <div id="results"></div>
     </main>
-</body>
+    
     <script>
         // City-specific password protection
         const correctPassword = 'YourSecurePassword';  // Replace with your password
@@ -169,15 +151,6 @@
                 document.getElementById('loginMessage').textContent = 'Incorrect Password';
             }
         });
-
-        function githubLogin() {
-            // Client-side GitHub OAuth authentication
-            const clientId = 'YOUR_CLIENT_ID'; // Replace with your GitHub OAuth App Client ID
-            const redirectUri = 'YOUR_REDIRECT_URI'; // Replace with your redirect URI
-
-            const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user`;
-            window.location.href = githubAuthUrl;
-        }
 
         // Check location when the page loads
         checkLocation();
@@ -283,28 +256,16 @@
             }
 
             if (ruleValue.includes('*')) {
-                ruleValue = ruleValue.replace('*', '.*');
-                const regex = new RegExp('^' + ruleValue + '$');
+                const regex = new RegExp('^' + ruleValue.replace(/\*/g, '.*') + '$');
                 return regex.test(alertValue);
             }
 
             switch (operator) {
-                case 'equals':
-                    return alertValue === ruleValue;
-                case 'not_equals':
-                    return alertValue !== ruleValue;
-                case 'contains':
-                    return alertValue.includes(ruleValue);
-                case 'not_contains':
-                    return !alertValue.includes(ruleValue);
-                case 'less_than':
+                case '=':
+                case '==':
+                    return alertValue == ruleValue;
+                case '<':
                     return alertValue < ruleValue;
-                case 'greater_than':
-                    return alertValue > ruleValue;
-                case 'starts_with':
-                    return alertValue.startsWith(ruleValue);
-                case 'ends_with':
-                    return alertValue.endsWith(ruleValue);
                 default:
                     return false;
             }
@@ -312,34 +273,40 @@
 
         function displayMatches(results) {
             const resultsDiv = document.getElementById('results');
+            resultsDiv
             resultsDiv.innerHTML = '';
 
-            if (results.matches.length > 0) {
-                const matchDiv = document.createElement('div');
-                matchDiv.className = 'match';
-                const matchHeader = document.createElement('h3');
-                matchHeader.textContent = 'Matches';
-                matchDiv.appendChild(matchHeader);
-                results.matches.forEach(match => {
-                    const p = document.createElement('p');
-                    p.textContent = `${fieldMappings[match.field]}: ${match.alertValue}`;
-                    matchDiv.appendChild(p);
+            if (results.mismatches.length > 0) {
+                const mismatchHeader = document.createElement('h3');
+                mismatchHeader.textContent = "Suppression failed due to:";
+                mismatchHeader.style.color = 'red';
+                resultsDiv.appendChild(mismatchHeader);
+
+                results.mismatches.forEach(mismatch => {
+                    const mismatchPara = document.createElement('p');
+                    mismatchPara.className = 'mismatch';
+                    const fieldName = fieldMappings[mismatch.field] || mismatch.field;
+                    mismatchPara.innerHTML = `<strong>${fieldName}</strong>: ${mismatch.reason}`;
+                    resultsDiv.appendChild(mismatchPara);
                 });
-                resultsDiv.appendChild(matchDiv);
             }
 
-            if (results.mismatches.length > 0) {
-                const mismatchDiv = document.createElement('div');
-                mismatchDiv.className = 'mismatch';
-                const mismatchHeader = document.createElement('h3');
-                mismatchHeader.textContent = 'Mismatches';
-                mismatchDiv.appendChild(mismatchHeader);
-                results.mismatches.forEach(mismatch => {
-                    const p = document.createElement('p');
-                    p.textContent = `${fieldMappings[mismatch.field]}: ${mismatch.reason}`;
-                    mismatchDiv.appendChild(p);
+            if (results.matches.length > 0) {
+                const matchHeader = document.createElement('h3');
+                matchHeader.textContent = "Matches found:";
+                resultsDiv.appendChild(matchHeader);
+
+                results.matches.forEach(match => {
+                    const matchPara = document.createElement('p');
+                    matchPara.className = 'match';
+                    const fieldName = fieldMappings[match.field] || match.field;
+                    matchPara.innerHTML = `Match found: <strong>${fieldName}</strong> - Alert Value: ${match.alertValue}, Rule Value: ${match.ruleValue}`;
+                    resultsDiv.appendChild(matchPara);
                 });
-                resultsDiv.appendChild(mismatchDiv);
+            }
+
+            if (results.matches.length === 0 && results.mismatches.length === 0) {
+                resultsDiv.textContent = 'No significant results to display.';
             }
         }
     </script>
