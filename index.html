@@ -67,7 +67,16 @@
 </head>
 <body>
     <h1>Alert Suppression Inspector</h1>
-    <main>
+    
+    <!-- Location and Password Protection -->
+    <div id="locationCheck">Checking your location...</div>
+    <div id="auth" style="display: none;">
+        <input type="password" id="password" placeholder="Enter Password">
+        <button id="loginButton">Enter</button>
+        <p id="loginMessage"></p>
+    </div>
+
+    <main id="mainContent" style="display: none;">
         <label for="alertEditor">Alert Data:</label>
         <div id="alertEditor" class="editor"></div>
 
@@ -77,17 +86,53 @@
         <button onclick="processData()">Validate</button>
         <div id="results"></div>
     </main>
+    
     <script>
+        // City-specific password protection
+        const correctPassword = 'YourSecurePassword';  // Replace with your password
+        const allowedCities = ['Miami', 'Orlando', 'Rochester', 'Bangalore'];
+
+        function checkLocation() {
+            fetch('https://ipapi.co/json/')
+                .then(response => response.json())
+                .then(data => {
+                    const userCity = data.city;
+                    if (allowedCities.includes(userCity)) {
+                        document.getElementById('locationCheck').style.display = 'none';
+                        document.getElementById('auth').style.display = 'block';
+                    } else {
+                        document.getElementById('locationCheck').textContent = 'Access denied: Unauthorized city';
+                    }
+                })
+                .catch(error => {
+                    console.error('Location check failed:', error);
+                    document.getElementById('locationCheck').textContent = 'Could not determine location. Please try again later.';
+                });
+        }
+
+        document.getElementById('loginButton').addEventListener('click', function() {
+            const inputPassword = document.getElementById('password').value;
+            if (inputPassword === correctPassword) {
+                document.getElementById('auth').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+            } else {
+                document.getElementById('loginMessage').textContent = 'Incorrect Password';
+            }
+        });
+
+        // Check location when the page loads
+        checkLocation();
+
         // Initialize Ace editor for Alert Data
         var alertEditor = ace.edit("alertEditor");
         alertEditor.setTheme("ace/theme/monokai");
         alertEditor.session.setMode("ace/mode/json");
-    
+
         // Initialize Ace editor for Suppression Rule
         var ruleEditor = ace.edit("ruleEditor");
         ruleEditor.setTheme("ace/theme/monokai");
         ruleEditor.session.setMode("ace/mode/json");
-    
+
         const fieldMappings = {
             "ip": "IP Address",
             "os": "Operating System",
@@ -114,16 +159,16 @@
             "parentProcessName": "Parent Process Name",
             "grandParentProcessName": "Grand Parent Process Name"
         };
-    
+
         function processData() {
             var alertData, ruleData;
             try {
                 alertData = JSON.parse(alertEditor.getValue());
                 ruleData = JSON.parse(ruleEditor.getValue());
-    
+
                 const results = findMatches(alertData, ruleData);
                 displayMatches(results);
-    
+
                 console.log("Alert Data:", alertData);
                 console.log("Rule Data:", ruleData);
                 alert('Processing complete. Check console for details.');
@@ -131,7 +176,7 @@
                 alert('Invalid JSON: ' + e.message);
             }
         }
-    
+
         function findMatches(alertData, ruleData) {
             let results = {
                 matches: [],
@@ -144,7 +189,7 @@
                     const ruleValue = metadata[key].value;
                     const operator = metadata[key].operator;
                     const dataType = metadata[key].dataType;
-    
+
                     if (compareValues(alertValue, ruleValue, operator, dataType)) {
                         results.matches.push({
                             field: key,
@@ -167,22 +212,22 @@
             }
             return results;
         }
-    
+
         function getNestedValue(obj, path) {
             return path.split('.').reduce((value, key) => value && value[key], obj);
         }
-    
+
         function compareValues(alertValue, ruleValue, operator, dataType) {
             if (dataType === 'number') {
                 alertValue = parseFloat(alertValue);
                 ruleValue = parseFloat(ruleValue);
             }
-    
+
             if (ruleValue.includes('*')) {
                 const regex = new RegExp('^' + ruleValue.replace(/\*/g, '.*') + '$');
                 return regex.test(alertValue);
             }
-    
+
             switch (operator) {
                 case '=':
                 case '==':
@@ -193,17 +238,17 @@
                     return false;
             }
         }
-    
+
         function displayMatches(results) {
             const resultsDiv = document.getElementById('results');
             resultsDiv.innerHTML = '';
-    
+
             if (results.mismatches.length > 0) {
                 const mismatchHeader = document.createElement('h3');
                 mismatchHeader.textContent = "Suppression failed due to:";
                 mismatchHeader.style.color = 'red';
                 resultsDiv.appendChild(mismatchHeader);
-    
+
                 results.mismatches.forEach(mismatch => {
                     const mismatchPara = document.createElement('p');
                     mismatchPara.className = 'mismatch';
@@ -212,12 +257,12 @@
                     resultsDiv.appendChild(mismatchPara);
                 });
             }
-    
+
             if (results.matches.length > 0) {
                 const matchHeader = document.createElement('h3');
                 matchHeader.textContent = "Matches found:";
                 resultsDiv.appendChild(matchHeader);
-    
+
                 results.matches.forEach(match => {
                     const matchPara = document.createElement('p');
                     matchPara.className = 'match';
@@ -226,7 +271,7 @@
                     resultsDiv.appendChild(matchPara);
                 });
             }
-    
+
             if (results.matches.length === 0 && results.mismatches.length === 0) {
                 resultsDiv.textContent = 'No significant results to display.';
             }
