@@ -88,6 +88,7 @@
             padding: 10px;
             width: 250px;
             margin-bottom: 10px;
+            align-items: center;
         }
 
         #loginMessage {
@@ -141,8 +142,15 @@
                     document.getElementById('locationCheck').textContent = 'Could not determine location. Please try again later.';
                 });
         }
+        function githubLogin() {
+            // Client-side GitHub OAuth authentication
+            const clientId = 'YOUR_CLIENT_ID'; // Replace with your GitHub OAuth App Client ID
+            const redirectUri = 'YOUR_REDIRECT_URI'; // Replace with your redirect URI
 
-        document.getElementById('loginButton').addEventListener('click', function() {
+            const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user`;
+            window.location.href = githubAuthUrl;
+            }
+            document.getElementById('loginButton').addEventListener('click', function() {
             const inputPassword = document.getElementById('password').value;
             if (inputPassword === correctPassword) {
                 document.getElementById('auth').style.display = 'none';
