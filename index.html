@@ -126,24 +126,6 @@
         const correctPassword = 'YourSecurePassword';  // Replace with your password
         const allowedCities = ['Miami', 'Orlando', 'Rochester', 'Bangalore'];
 
-        function checkLocation() {
-            fetch('https://ipapi.co/json/')
-                .then(response => response.json())
-                .then(data => {
-                    const userCity = data.city;
-                    if (allowedCities.includes(userCity)) {
-                        document.getElementById('locationCheck').style.display = 'none';
-                        document.getElementById('auth').style.display = 'block';
-                    } else {
-                        document.getElementById('locationCheck').textContent = 'Access denied: Unauthorized city';
-                    }
-                })
-                .catch(error => {
-                    console.error('Location check failed:', error);
-                    document.getElementById('locationCheck').textContent = 'Could not determine location. Please try again later.';
-                });
-        }
-
         function githubLogin() {
             // Client-side GitHub OAuth authentication
             const clientId = 'Ov23liwJkxuk5zFU8lTi'; // GitHub OAuth App Client ID
